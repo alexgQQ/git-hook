@@ -4,7 +4,7 @@ from flask import Flask
 app = Flask(__name__)
 webhook = Webhook(app)
 
-@app.route("/")
+@app.route("/", methods=['POST'])
 def hello_world():
     return "Hello, World!"
 
