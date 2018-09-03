@@ -2,9 +2,9 @@ from github_webhook import Webhook
 from flask import Flask
 
 app = Flask(__name__)
-webhook = Webhook(app)
+webhook = Webhook(app) # /postreceive endpoint
 
-@app.route("/", methods=['POST'])
+@app.route("/")
 def hello_world():
     return "Hello, World!"
 
