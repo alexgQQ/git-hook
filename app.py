@@ -6,6 +6,7 @@ import git
 def update_repo(to_update):
     home=r'~/Development/RPI/'
     try:
+        print('Pulling %s repo...', to_update)
         g = git.cmd.Git(home + to_update)
         g.pull
         return True
@@ -22,7 +23,9 @@ def hello_world():
 
 @webhook.hook()
 def on_push(data):
-    update_repo(data[u'repository'][u'name'])
+    name = data[u'repository'][u'name']
+    print('Push received for %s repo', name)
+    update_repo(name)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=80)
