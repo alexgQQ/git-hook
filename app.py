@@ -7,8 +7,9 @@ def update_repo(to_update):
     home=r'~/Development/RPI/'
     try:
         print('Pulling %s repo...', to_update)
-        g = git.cmd.Git(home + to_update)
-        g.pull
+        repo = git.Repo(home + to_update)
+        origin = repo.remotes.origin
+        origin.pull()
         return True
     except:
         print('Pull for %s repo failed !!', to_update)
