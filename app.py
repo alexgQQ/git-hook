@@ -4,15 +4,16 @@ import git
 
 
 def update_repo(to_update):
-    home=r'~/Development/RPI/'
+    home = r'~/Development/RPI/'
     try:
-        print('Pulling %s repo...', to_update)
+        print('Pulling %s repo...'.format(to_update))
         repo = git.Repo(home + to_update)
         origin = repo.remotes.origin
         origin.pull()
         return True
-    except:
-        print('Pull for %s repo failed !!', to_update)
+    except Exception as e:
+        print('Pull for %s repo failed !!'.format(to_update))
+        print('Error: %s'.format(e))
         return False
 
 app = Flask(__name__)
