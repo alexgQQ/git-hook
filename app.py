@@ -2,9 +2,8 @@ from github_webhook import Webhook
 from flask import Flask
 import git
 
-
 def update_repo(to_update):
-    home = r'~/Development/RPI/'
+    home = r'/home/pi/Development/RPI/'
     try:
         print('Pulling %s repo...'.format(to_update))
         repo = git.Repo(home + to_update)
