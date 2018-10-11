@@ -1,9 +1,12 @@
-from github_webhook import Webhook
-from flask import Flask
-from repos import REPOS
-from git import Repo
+import hmac
 import sys
 import os
+
+from hashlib import sha1
+from github_webhook import Webhook
+from flask import Flask, request, abort
+from settings import REPOS, SECRET_KEY
+from git import Repo
 
 
 class GitKeeper(object):
@@ -26,6 +29,22 @@ class GitKeeper(object):
         repo.git.pull()
         return True
 
+    def validate_header(self):
+        header_signature = request.headers.get('X-Hub-Signature')
+        if header_signature is None:
+            return False
+
+        sha_name, signature = header_signature.split('=')
+        if sha_name != 'sha1':
+            return False
+
+        mac = hmac.new(SECRET_KEY, msg=request.data, digestmod='sha1')
+
+        if not str(mac.hexdigest()) == str(signature):
+            return False
+
+        return True
+
 
 jenkins = GitKeeper(sys.argv[1])
 
@@ -33,18 +52,17 @@ jenkins = GitKeeper(sys.argv[1])
 app = Flask(__name__)
 webhook = Webhook(app) # /postreceive endpoint
 
-@app.route("/")
-def hello_world():
-    return "Hello, World!"
-
 @webhook.hook()
 def on_push(data):
-    name = data[u'repository'][u'name']
-    print('Push received for %s repo', name)
-    try:
-        jenkins.pull(name)
-    except Exception as e:
-        print('Push failed with %s', e)
+    if jenkins.validate_header():
+        name = data[u'repository'][u'name']
+        print('Push received for %s repo', name)
+        try:
+            jenkins.pull(name)
+        except Exception as e:
+            print('Push failed with %s', e)
+        return '200 OK!'
+    return abort(403)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=80)

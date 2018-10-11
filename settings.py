@@ -1,5 +1,5 @@
 
-SECRET_KEY = ''
+SECRET_KEY = b''
 
 REPOS = {
     'git-hook': r'https://github.com/alexgQQ/git-hook.git',
