@@ -15,20 +15,35 @@ class GitKeeper(object):
     def __init__(self, home_path):
         self.repos = dict()
 
-        for loc, repo_url in REPOS.items():
+        for loc, repo_data in REPOS.items():
+            repo_url = repo_data['url']
+            working_branch = repo_data['default-branch']
             local_repo_path = home_path + loc
 
             if not os.path.isdir(local_repo_path):
-                self.repos[loc] = Repo.clone_from(repo_url, local_repo_path)
+                repo = Repo.clone_from(repo_url, local_repo_path)
+                repo.git.checkout(working_branch)
+                self.repos[loc] = {
+                    'repo_obj': repo,
+                    'working_branch': working_branch,
+                }
             else:
-                self.repos[loc] = Repo(local_repo_path)
+                repo = Repo(local_repo_path)
+                repo.git.pull()
+                repo.git.checkout(working_branch)
+                self.repos[loc] = {
+                    'repo_obj': repo,
+                    'working_branch': working_branch,
+                }
 
-    def pull(self, repo_name):
+    def pull(self, repo_name, branch_name):
         repo = self.repos.get(repo_name, None)
+        repo_obj = repo['repo_obj']
         if not repo:
             app.logger.error('Repo {} not found!'.format(repo_name))
             return False
-        repo.git.pull()
+        if branch_name is repo['working_branch']:
+            repo_obj.git.pull()
         return True
 
     def validate_header(self):
@@ -58,9 +73,10 @@ webhook = Webhook(app) # /postreceive endpoint
 def on_push(data):
     if jenkins.validate_header():
         name = data[u'repository'][u'name']
+        branch = data[u'ref'].split('/')[-1]
         app.logger.info('Push event received for {}'.format(name))
         try:
-            jenkins.pull(name)
+            jenkins.pull(name, branch)
             app.logger.info('Pull success!')
         except Exception as e:
             app.logger.error('Pull failed with {}'.format(e))
