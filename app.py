@@ -1,12 +1,14 @@
 import hmac
 import sys
 import os
+import logging
 
 from hashlib import sha1
 from github_webhook import Webhook
 from flask import Flask, request, abort
-from settings import REPOS, SECRET_KEY
+from settings import REPOS, SECRET_KEY, LOG_FILE_LOCATION
 from git import Repo
+from logging.handlers import RotatingFileHandler
 
 
 class GitKeeper(object):
@@ -24,7 +26,7 @@ class GitKeeper(object):
     def pull(self, repo_name):
         repo = self.repos.get(repo_name, None)
         if not repo:
-            print('Error - Repo: %s not found!', repo_name)
+            app.logger.error('Repo {} not found!'.format(repo_name))
             return False
         repo.git.pull()
         return True
@@ -56,13 +58,18 @@ webhook = Webhook(app) # /postreceive endpoint
 def on_push(data):
     if jenkins.validate_header():
         name = data[u'repository'][u'name']
-        print('Push received for %s repo', name)
+        app.logger.info('Push event received for {}'.format(name))
         try:
             jenkins.pull(name)
+            app.logger.info('Pull success!')
         except Exception as e:
-            print('Push failed with %s', e)
+            app.logger.error('Pull failed with {}'.format(e))
         return '200 OK!'
+    app.logger.warning(' 403 - Unverified request received!')
     return abort(403)
 
 if __name__ == "__main__":
+    handler = RotatingFileHandler(LOG_FILE_LOCATION, maxBytes=10000, backupCount=1)
+    handler.setLevel(logging.INFO)
+    app.logger.addHandler(handler)
     app.run(host="0.0.0.0", port=80)
